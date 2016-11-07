@@ -1,0 +1,78 @@
+---
+title: "Forecasting International Airline Passengers"
+author: "Alex Cairns"
+date: "November 6, 2016"
+output: ioslides_presentation
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Overview
+
+- This small shiny application allows the user to forecast with an ARIMA model.
+- The example demonstrated here shows the output from the application using the *AirPassengers* dataset from the *dataset* package.
+- The outline of the presentation is as follows:
+      - the next slide shows the R code for the server function;
+      - the following slide shows the output from the shiny app; and
+      - the final slide summarizes the basic functions of the app.
+
+## Server Calculation
+
+```{r, echo = TRUE, eval = FALSE}
+server <- shinyServer(function(input, output) {
+      y <- as.ts(AirPassengers, frequency = 12)
+      fit.model <- reactive({
+            fit <- arima(y, order = c(input$ar, input$diff, input$ma),
+                  seasonal = c(input$sar, input$sdiff, input$sma))
+            forecast(fit, input$fcastperiod, level = 0.95)
+      })
+      output$plot <- renderPlot({
+            plot(fit.model(), xlab = "Time", 
+                 ylab = "Forecasted Values")})
+      
+})
+      
+```
+
+## Application Output
+
+```{r}
+suppressMessages(suppressWarnings(library(forecast)))
+suppressMessages(suppressWarnings(library(datasets)))
+
+inputPanel(
+      numericInput("fcastperiod", "Number of Months to Forecast?", value = 6, min = 1, max = 30, step =1),
+
+      sliderInput("ar", "Non-Seasonal AR process", min = 0, max = 10, value = 1),
+      sliderInput("ma", "Non-Seasonal MA process", min = 0, max = 10, value = 1),
+      sliderInput("diff", "Non-Seasonal Differencing", min = 0, max = 2, value = 1),
+
+      sliderInput("sar", "Seasonal AR process", min = 0, max = 10, value = 1),
+      sliderInput("sma", "Seasonal MA process", min = 0, max = 10, value = 1),
+      sliderInput("sdiff", "Seasonal Differencing", min = 0, max = 2, value = 1)
+)
+
+
+y <- as.ts(AirPassengers, frequency = 12)
+      fit.model <- reactive({
+            fit <- arima(y, order = c(input$ar, input$diff, input$ma),
+                         seasonal = c(input$sar, input$sdiff, input$sma))
+            forecast(fit, input$fcastperiod, level = 0.95)
+      })
+      
+renderPlot({plot(fit.model(), xlab = "Time", ylab = "Forecasted Values")})
+renderTable({ fit.model()})
+
+```
+
+## Summary
+
+- The app allows users to alter seasonal and non-seasonal components  of the ARIMA model.
+- Sliders on the left-hand side allow the user to varying the number of autoregressive and moving average terms to include (up to 10), as well as the number of times the data is differenced to account for trends (up to 2 differences).
+- Output from the app is expressed in two ways:
+      - A plot illustrating the series and the forecasted values; and 
+      - A table containing the forecasted values as well as the lower and upper bounds of a 95% prediction interval.
+
